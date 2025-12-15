@@ -5,7 +5,7 @@ from pathlib import Path
 from transformers import AutoTokenizer
 from typing import List, Union
 
-class ONNXEmbeddingModel:
+class ONNXEmbeddings:
     """ONNX inference for embedding models"""
     
     def __init__(self, model_path: Union[str, Path]):
@@ -91,14 +91,7 @@ class ONNXEmbeddingModel:
         norms = np.clip(norms, a_min=1e-9, a_max=None)
         return embeddings / norms
     
-    def encode(
-        self, 
-        sentences: Union[str, List[str]], 
-        batch_size: int = 32, 
-        normalize: bool = True, 
-        max_length: int = 512,
-        show_progress: bool = False
-    ) -> np.ndarray:
+    def encode(self, sentences: Union[str, List[str]], batch_size: int = 32, normalize: bool = True, max_length: int = 128, show_progress: bool = False) -> np.ndarray:
         """
         Encode sentences into embeddings
         
@@ -166,6 +159,12 @@ class ONNXEmbeddingModel:
         # Concatenate all batches
         return np.vstack(all_embeddings)
     
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        return [self.model.encode(t).tolist() for t in texts]
+            
+    def embed_query(self, query: str) -> List[float]:
+        return self.model.encode([query]).tolist()
+    
     def similarity(self, embeddings1: np.ndarray, embeddings2: np.ndarray) -> np.ndarray:
         """
         Compute cosine similarity between two sets of embeddings
@@ -179,12 +178,7 @@ class ONNXEmbeddingModel:
         """
         return np.dot(embeddings1, embeddings2.T)
     
-    def find_most_similar(
-        self, 
-        query: Union[str, np.ndarray], 
-        candidates: Union[List[str], np.ndarray],
-        top_k: int = 5
-    ) -> List[tuple]:
+    def find_most_similar(self, query: Union[str, np.ndarray], candidates: Union[List[str], np.ndarray], top_k: int = 5) -> List[tuple]:
         """
         Find most similar candidates to a query
         
@@ -216,78 +210,71 @@ class ONNXEmbeddingModel:
         return [(int(idx), float(similarities[idx])) for idx in top_indices]
 
 
-if __name__ == "__main__":
-    # Initialize model
-    model_path = "/Users/locseo/Desktop/Master DS/IT4868E_Web mining/model/gte-multilingual-base-JA_onnx"
-    model = ONNXEmbeddingModel(model_path)
+# if __name__ == "__main__":
+#     # Initialize model
+#     model_path = "/Users/locseo/Desktop/Master DS/IT4868E_Web mining/model/gte-multilingual-base-JA_onnx"
+#     model = ONNXEmbeddingModel(model_path)
     
-    print("\n")
-    print("Test 1: Single Sentence Encoding")
+#     print("\nTest 1: Single Sentence Encoding")
     
-    # Encode single sentence
-    text = "Hello world"
-    embedding = model.encode(text)
-    print(f"Text: '{text}'")
-    print(f"Embedding shape: {embedding.shape}")
-    print(f"First 5 values: {embedding[0][:5]}")
-    print(f"L2 norm: {np.linalg.norm(embedding[0]):.6f}")
+#     # Encode single sentence
+#     text = "Hello world"
+#     embedding = model.encode(text)
+#     print(f"Text: '{text}'")
+#     print(f"Embedding shape: {embedding.shape}")
+#     print(f"First 5 values: {embedding[0][:5]}")
+#     print(f"L2 norm: {np.linalg.norm(embedding[0]):.6f}")
     
-    print("\n")
-    print("Test 2: Multiple Sentences & Similarity")
+#     print("\nTest 2: Multiple Sentences & Similarity")
     
-    # Encode multiple sentences
-    sentences = [
-        "First sentence", 
-        "Second sentence", 
-        "Third sentence",
-        "The first statement",
-        "Another sentence here"
-    ]
+#     # Encode multiple sentences
+#     sentences = [
+#         "First sentence", 
+#         "Second sentence", 
+#         "Third sentence",
+#         "The first statement",
+#         "Another sentence here"
+#     ]
     
-    embeddings = model.encode(sentences, batch_size=32, normalize=True)
-    print(f"Encoded {len(sentences)} sentences")
-    print(f"Embeddings shape: {embeddings.shape}")
+#     embeddings = model.encode(sentences, batch_size=32, normalize=True)
+#     print(f"Encoded {len(sentences)} sentences")
+#     print(f"Embeddings shape: {embeddings.shape}")
     
-    # Compute similarity matrix
-    similarity_matrix = model.similarity(embeddings, embeddings)
-    print(f"\nSimilarity matrix shape: {similarity_matrix.shape}")
-    print("\nPairwise similarities:")
-    for i in range(len(sentences)):
-        for j in range(i+1, len(sentences)):
-            sim = similarity_matrix[i, j]
-            print(f"  '{sentences[i]}' <-> '{sentences[j]}': {sim:.4f}")
+#     # Compute similarity matrix
+#     similarity_matrix = model.similarity(embeddings, embeddings)
+#     print(f"\nSimilarity matrix shape: {similarity_matrix.shape}")
+#     print("\nPairwise similarities:")
+#     for i in range(len(sentences)):
+#         for j in range(i+1, len(sentences)):
+#             sim = similarity_matrix[i, j]
+#             print(f"  '{sentences[i]}' <-> '{sentences[j]}': {sim:.4f}")
     
-    print("\n")
-    print("Test 3: Find Most Similar")
+#     print("\nTest 3: Find Most Similar")
     
-    query = "First sentence"
-    candidates = sentences[1:]  # Exclude the query itself
+#     query = "First sentence"
+#     candidates = sentences[1:]  # Exclude the query itself
     
-    print(f"Query: '{query}'")
-    print(f"\nTop 3 most similar candidates:")
+#     print(f"Query: '{query}'")
+#     print(f"\nTop 3 most similar candidates:")
     
-    results = model.find_most_similar(query, candidates, top_k=3)
-    for rank, (idx, score) in enumerate(results, 1):
-        print(f"  {rank}. '{candidates[idx]}' (score: {score:.4f})")
+#     results = model.find_most_similar(query, candidates, top_k=3)
+#     for rank, (idx, score) in enumerate(results, 1):
+#         print(f"  {rank}. '{candidates[idx]}' (score: {score:.4f})")
     
-    print("\n")
-    print("Test 4: Multilingual Support")
+#     print("\nTest 4: Multilingual Support")
     
-    multilingual_texts = [
-        "Machine learning is fascinating",
-        "機械学習は魅力的です",  # Japanese: Machine learning is fascinating
-        "L'apprentissage automatique est fascinant",  # French
-    ]
+#     multilingual_texts = [
+#         "Machine learning is fascinating",
+#         "機械学習は魅力的です",  # Japanese: Machine learning is fascinating
+#         "L'apprentissage automatique est fascinant",  # French
+#     ]
     
-    ml_embeddings = model.encode(multilingual_texts, normalize=True)
-    ml_similarities = model.similarity(ml_embeddings, ml_embeddings)
+#     ml_embeddings = model.encode(multilingual_texts, normalize=True)
+#     ml_similarities = model.similarity(ml_embeddings, ml_embeddings)
     
-    print("Cross-lingual similarities:")
-    for i, text1 in enumerate(multilingual_texts):
-        for j, text2 in enumerate(multilingual_texts):
-            if i < j:
-                sim = ml_similarities[i, j]
-                print(f"  {sim:.4f}: '{text1[:30]}...' <-> '{text2[:30]}...'")
-    
-    print("\n")
-    print("All tests completed successfully! ✓")
+#     print("Cross-lingual similarities:")
+#     for i, text1 in enumerate(multilingual_texts):
+#         for j, text2 in enumerate(multilingual_texts):
+#             if i < j:
+#                 sim = ml_similarities[i, j]
+#                 print(f"  {sim:.4f}: '{text1[:30]}...' <-> '{text2[:30]}...'")
