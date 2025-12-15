@@ -160,10 +160,10 @@ class ONNXEmbeddings:
         return np.vstack(all_embeddings)
     
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        return [self.model.encode(t).tolist() for t in texts]
+        return self.encode(texts, show_progress=False).tolist()
             
     def embed_query(self, query: str) -> List[float]:
-        return self.model.encode([query]).tolist()
+        return self.encode([query], show_progress=False)[0].tolist()
     
     def similarity(self, embeddings1: np.ndarray, embeddings2: np.ndarray) -> np.ndarray:
         """

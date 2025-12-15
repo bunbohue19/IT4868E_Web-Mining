@@ -1,27 +1,30 @@
-import chromadb
+import sys
 from pathlib import Path
-from tqdm import tqdm
-from record.word import Word
-from langchain_chroma import Chroma
-from langchain.text_splitter import CharacterTextSplitter
-from src.embedding.embedding_model import ONNXEmbeddings
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+SRC_DIR = PROJECT_ROOT / "src"
+
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from tqdm import tqdm
+from langchain_chroma import Chroma
+from langchain_text_splitters import CharacterTextSplitter
+from indexing.record.word import Word
+from embedding.embedding_model import ONNXEmbeddings
+
 
 print(PROJECT_ROOT)
 
 def main():
-    word = Word()
+    record_type = "word"
+    word = Word(file_path=f"{PROJECT_ROOT}/dataset/words/[JA-JA]_大辞泉_第二版.jsonl")
     word_loader = word.init_loader()
     data = word_loader.load()
     
     # 1. Data Preparation for Retrieval
-    text_splitter = CharacterTextSplitter(chunk_size=200)
+    text_splitter = CharacterTextSplitter(chunk_size=4000)
     chunks = text_splitter.split_documents(data)
-    
-    # Retrieve embedding function from code env resources
-    model_kwargs = {'device': 'cuda:0'}
-    encode_kwargs = {"normalize_embeddings": True, "batch_size": 32}
 
     # Initialize Text Embedding
     embeddings = ONNXEmbeddings(model_path=f"{PROJECT_ROOT}/model/gte-multilingual-base-JA_onnx")
@@ -37,7 +40,7 @@ def main():
         _ = Chroma.from_documents(
             documents=batch, 
             embedding=embeddings, 
-            collection_name="word_vector",
+            collection_name=f"{record_type}_vector",
             persist_directory=persist_directory
         )
 
