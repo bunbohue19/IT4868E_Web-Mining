@@ -1,3 +1,4 @@
 model/
 dataset/
 *.sh
+vector_database/
