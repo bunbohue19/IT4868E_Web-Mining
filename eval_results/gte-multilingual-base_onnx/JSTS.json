@@ -1,0 +1,26 @@
+{
+  "dataset_revision": "5bac629e25799df4c9c80a6a5db983d6cba9e77d",
+  "task_name": "JSTS",
+  "mteb_version": "2.4.2",
+  "scores": {
+    "validation": [
+      {
+        "pearson": 0.806068,
+        "spearman": 0.777216,
+        "cosine_pearson": 0.806068,
+        "cosine_spearman": 0.777217,
+        "manhattan_pearson": 0.798444,
+        "manhattan_spearman": 0.775854,
+        "euclidean_pearson": 0.800504,
+        "euclidean_spearman": 0.777217,
+        "main_score": 0.777217,
+        "hf_subset": "default",
+        "languages": [
+          "jpn-Jpan"
+        ]
+      }
+    ]
+  },
+  "evaluation_time": 64.41510486602783,
+  "kg_co2_emissions": null
+}
