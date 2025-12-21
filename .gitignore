@@ -4,3 +4,5 @@ dataset/
 vector_database/
 *.sh
 *.pyc
+data/
+Processed Data/
