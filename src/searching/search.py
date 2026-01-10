@@ -2,6 +2,9 @@ import sys
 import time
 import chromadb
 from pathlib import Path
+
+import chromadb
+import streamlit as st
 from langchain_chroma import Chroma
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -12,10 +15,8 @@ if str(SRC_DIR) not in sys.path:
 
 from embedding.embedding_model import ONNXEmbeddings
 
-def lookup(vector_store: Chroma, query: str, k=1):
-    return vector_store.similarity_search(query, k=k)
 
-def main(model_path=f"{PROJECT_ROOT}/model/gte-multilingual-base_onnx"):
+def main(model_path=f"{PROJECT_ROOT}/model/gte-multilingual-base-JA_onnx"):
 
     # 1. Initialize Text Embedding with cache
     embeddings = ONNXEmbeddings(
@@ -26,10 +27,10 @@ def main(model_path=f"{PROJECT_ROOT}/model/gte-multilingual-base_onnx"):
     # 2. Connect to vector database
     persist_directory = f"{PROJECT_ROOT}/vector_database/words"
     persistent_client = chromadb.PersistentClient(path=persist_directory)
-    vector_store = Chroma(
+    return Chroma(
         client=persistent_client,
         collection_name="word_vector",
-        embedding_function=embeddings
+        embedding_function=embeddings,
     )
     # 3. Run example queries with latency tracking
 
