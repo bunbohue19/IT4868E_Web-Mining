@@ -4,25 +4,44 @@ import onnxruntime as ort
 from pathlib import Path
 from transformers import AutoTokenizer
 from typing import List, Union
+from functools import lru_cache
+import hashlib
 
 class ONNXEmbeddings:
-    """ONNX inference for embedding models"""
-    
-    def __init__(self, model_path: Union[str, Path]):
+    """ONNX inference for embedding models with caching support"""
+
+    def __init__(self, model_path: Union[str, Path], cache_size: int = 1000):
         """
         Initialize the ONNX model for inference
-        
+
         Args:
             model_path: Path to directory containing model.onnx and tokenizer files
+            cache_size: Maximum number of cached query embeddings (default: 1000)
         """
-        self.model_path = Path(model_path)
-        
-        # Load tokenizer
+        self.model_path = Path(model_path).resolve()
+        self.cache_size = cache_size
+        self._embedding_cache = {}
+
+        # Load tokenizer with absolute path to avoid validation issues
         print(f"Loading tokenizer from: {self.model_path}")
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            str(self.model_path), 
-            trust_remote_code=True
-        )
+
+        # Use absolute path and ensure it exists
+        if not self.model_path.exists():
+            raise ValueError(f"Model path does not exist: {self.model_path}")
+
+        # Work around HuggingFace validation issue with paths containing spaces
+        # by temporarily changing directory
+        original_dir = os.getcwd()
+        try:
+            os.chdir(self.model_path.parent)
+            relative_path = self.model_path.name
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                relative_path,
+                trust_remote_code=True,
+                local_files_only=True
+            )
+        finally:
+            os.chdir(original_dir)
         
         # Load ONNX model
         onnx_model_path = self.model_path / "model.onnx"
@@ -80,35 +99,65 @@ class ONNXEmbeddings:
     def normalize_embeddings(self, embeddings: np.ndarray) -> np.ndarray:
         """
         Normalize embeddings to unit length
-        
+
         Args:
             embeddings: Input embeddings [batch_size, hidden_dim]
-        
+
         Returns:
             Normalized embeddings [batch_size, hidden_dim]
         """
         norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
         norms = np.clip(norms, a_min=1e-9, a_max=None)
         return embeddings / norms
+
+    def _get_cache_key(self, text: str, normalize: bool, max_length: int) -> str:
+        """Generate cache key for a query"""
+        key_string = f"{text}|{normalize}|{max_length}"
+        return hashlib.md5(key_string.encode()).hexdigest()
+
+    def _get_from_cache(self, cache_key: str) -> Union[np.ndarray, None]:
+        """Retrieve embedding from cache"""
+        return self._embedding_cache.get(cache_key)
+
+    def _add_to_cache(self, cache_key: str, embedding: np.ndarray):
+        """Add embedding to cache with LRU eviction"""
+        if len(self._embedding_cache) >= self.cache_size:
+            # Simple LRU: remove oldest entry
+            oldest_key = next(iter(self._embedding_cache))
+            del self._embedding_cache[oldest_key]
+        self._embedding_cache[cache_key] = embedding
+
+    def clear_cache(self):
+        """Clear the embedding cache"""
+        self._embedding_cache.clear()
     
-    def encode(self, sentences: Union[str, List[str]], batch_size: int = 32, normalize: bool = True, max_length: int = 128, show_progress: bool = False) -> np.ndarray:
+    def encode(self, sentences: Union[str, List[str]], batch_size: int = 32, normalize: bool = True, max_length: int = 128, show_progress: bool = False, use_cache: bool = True) -> np.ndarray:
         """
-        Encode sentences into embeddings
-        
+        Encode sentences into embeddings with caching support
+
         Args:
             sentences: Single sentence or list of sentences
             batch_size: Batch size for processing
             normalize: Whether to normalize embeddings
             max_length: Maximum sequence length
             show_progress: Whether to show progress bar
-        
+            use_cache: Whether to use embedding cache (default: True)
+
         Returns:
             Embeddings as numpy array [num_sentences, hidden_dim]
         """
         # Handle single sentence
-        if isinstance(sentences, str):
+        is_single = isinstance(sentences, str)
+        if is_single:
             sentences = [sentences]
-        
+
+        # Check cache for single queries (most common use case)
+        if use_cache and len(sentences) == 1:
+            cache_key = self._get_cache_key(sentences[0], normalize, max_length)
+            cached_embedding = self._get_from_cache(cache_key)
+            if cached_embedding is not None:
+                return cached_embedding
+
         all_embeddings = []
         num_batches = (len(sentences) + batch_size - 1) // batch_size
         
@@ -155,9 +204,16 @@ class ONNXEmbeddings:
         
         if show_progress:
             print()  # New line after progress
-        
+
         # Concatenate all batches
-        return np.vstack(all_embeddings)
+        result = np.vstack(all_embeddings)
+
+        # Cache single query results
+        if use_cache and len(sentences) == 1:
+            cache_key = self._get_cache_key(sentences[0], normalize, max_length)
+            self._add_to_cache(cache_key, result)
+
+        return result
     
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         return self.encode(texts, show_progress=False).tolist()
