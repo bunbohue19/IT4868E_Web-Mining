@@ -22,8 +22,11 @@
     "modalities": [
         "text"
     ],
-    "is_cross_encoder": null,
+    "model_type": [
+        "dense"
+    ],
     "citation": null,
     "contacts": null,
-    "loader": null
+    "loader": null,
+    "is_cross_encoder": false
 }

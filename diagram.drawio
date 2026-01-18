@@ -1,0 +1,79 @@
+<mxfile host="app.diagrams.net" modified="2024-05-01T00:00:00.000Z" agent="5.0" version="20.8.13">
+  <diagram id="vector-search-pipeline" name="Vector Search Pipeline">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1080" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Data -->
+        <mxCell id="data" value="Daijisen JSONL&#10;dataset/words/[JA-JA]_大辞泉_第二版.jsonl" style="shape=process;whiteSpace=wrap;html=1;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="220" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Export -->
+        <mxCell id="export" value="Export HF → ONNX&#10;src/export_onnx/export.py&#10;model/gte-multilingual-base-JA_onnx" style="shape=process;whiteSpace=wrap;html=1;rounded=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="340" y="60" width="260" height="110" as="geometry"/>
+        </mxCell>
+
+        <!-- Embedding -->
+        <mxCell id="embed" value="ONNXEmbeddings&#10;src/embedding/embedding_model.py" style="shape=process;whiteSpace=wrap;html=1;rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="660" y="60" width="220" height="110" as="geometry"/>
+        </mxCell>
+
+        <!-- Indexing -->
+        <mxCell id="index" value="Indexing&#10;src/indexing/index.py&#10;LangChain TextSplitter + Chroma" style="shape=process;whiteSpace=wrap;html=1;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="980" y="60" width="260" height="110" as="geometry"/>
+        </mxCell>
+
+        <!-- Vector DB -->
+        <mxCell id="chroma" value="Chroma Vector DB&#10;persist: vector_database/words&#10;collection: word_vector" style="shape=process;whiteSpace=wrap;html=1;rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="60" width="260" height="110" as="geometry"/>
+        </mxCell>
+
+        <!-- Streamlit -->
+        <mxCell id="ui" value="Streamlit UI&#10;src/searching/search.py" style="shape=process;whiteSpace=wrap;html=1;rounded=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="980" y="240" width="260" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Query -->
+        <mxCell id="query" value="User Query" style="shape=parallelogram;whiteSpace=wrap;html=1;rounded=1;fillColor=#cce5ff;strokeColor=#3c78d8;" vertex="1" parent="1">
+          <mxGeometry x="660" y="240" width="220" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Results -->
+        <mxCell id="results" value="Results&#10;Top-k documents&#10;formatted metadata" style="shape=parallelogram;whiteSpace=wrap;html=1;rounded=1;fillColor=#cfe2f3;strokeColor=#3d85c6;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="240" width="260" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;strokeColor=#6c8ebf;" edge="1" parent="1" source="data" target="export">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;strokeColor=#d79b00;" edge="1" parent="1" source="export" target="embed">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="encode chunks" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;strokeColor=#82b366;html=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="embed" target="index">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="770" y="140" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" value="persist" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;strokeColor=#b85450;html=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="index" target="chroma">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" value="load model + vector store" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;strokeColor=#9673a6;html=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="chroma" target="ui">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e6" value="similarity_search(k)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;strokeColor=#9673a6;html=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="ui" target="chroma">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7" value="query text" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;strokeColor=#3c78d8;html=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="query" target="ui">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e8" value="top-k docs" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;strokeColor=#3d85c6;html=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="ui" target="results">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

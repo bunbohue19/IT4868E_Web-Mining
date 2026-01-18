@@ -1,7 +1,7 @@
 {
   "dataset_revision": "113a72dd629207b956dd4db3c2d11445853f3b1f",
   "task_name": "JapaneseSentimentClassification",
-  "mteb_version": "2.4.2",
+  "mteb_version": "2.6.5",
   "scores": {
     "test": [
       {
@@ -134,6 +134,6 @@
       }
     ]
   },
-  "evaluation_time": 393.1700668334961,
+  "evaluation_time": 337.77870202064514,
   "kg_co2_emissions": null
 }
